@@ -8,6 +8,9 @@ setup(
     author="Vj",
     author_email="venkatesh.jatla@gmail.com",
     license="MIT",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(""),
+    install_requires=[
+        'pretty_errors','pytest',
+    ],
     zip_safe=False,
 )
