@@ -2,18 +2,19 @@ import os
 import pretty_errors
 import pandas as pd
 
-
 def get_file_paths_with_kws(pth, kw_lst, no_kw_lst = []):
     """
     Lists full paths of files having certian keywords in their names
 
     Parameters
     ----------
-
     pth: str Path to the root directory containing files.  kw_lst:
     list of str List of key words the files have
+
+    Usage
+    -----
+
     """
-    
     # Check if directory is valid
     if not (os.path.exists(pth)):
         raise Exception(f"The path {pth} is not valid.")
@@ -43,13 +44,35 @@ def get_file_paths_with_kws(pth, kw_lst, no_kw_lst = []):
             # Break comma separated values
             # Check if current file contains all of the key words
             kw_flag = all(kw in file for kw in kw_lst_csv)
-            no_kw_flag = all(kw in file for kw in no_kw_lst_csv)
+            if len(no_kw_lst_csv) > 0:
+                no_kw_flag = all(kw in file for kw in no_kw_lst_csv)
+            else:
+                no_kw_flag = False
             if kw_flag and not(no_kw_flag):
                 files.append(os.path.join(r, file))
 
     # return
     files.sort()
     return files
+
+def file_parts(fpth):
+    """ Returns a list having
+    1. Directory path where the file is located
+    2. file name
+    3. file extension.
+
+    Usage
+    -----
+    ```python
+    import pytkit as pk
+    fpth= '/home/vj/.bashrc'
+    dir_pth, fname, fext = file_parts(fpth)
+    ```
+    """
+    dir_pth = os.path.dirname(fpth)
+    fname_ext = os.path.basename(fpth)
+    fname, fext   = os.path.splitext(fname_ext)
+    return [dir_pth, fname, fext]
 
 def check_file_existance(pth):
     """ Checks if a file exists

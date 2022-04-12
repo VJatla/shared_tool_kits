@@ -1,59 +1,58 @@
 import os
-import sys
 import cv2
-import pdb
 import pytkit as pk
-from pathlib import Path
-
-import skvideo as sk
+import tempfile
 import skvideo.io as skvio
-
 
 
 class Vid:
 
-    vo_cv2 = None
-    """ Video object opened using CV2 """
+    vo = None
+    """ Video object """
 
-    writer = None
-    """ Video oobject opened using scikit-video. Mainly used for writing """
-    
     props = {}
     """ Video properties """
 
-    def __init__(self, pth, mode):
+    def __init__(self, pth, mode, fps=30, shape=(858, 480)):
         """
         Parameters
         ----------
         pth : Str
             Full path to video
         mode : Str
-            Mode of operation. Can be `write` for write and `read` for read
+            Mode of operation. Can be `write` or `read`
+        fps: Int, Optional
+            Frames per second. Defaults to 30 fps
+        shape: tuple
+            (width, height) of the video
+
+        Note
+        ----
+        For writing bitrate is set to
         """
 
         # Check if the file exists
-        if not pk.fd.check_file_existance(pth) and mode == "read":
-            raise Exception(f"Video does not exist \n\t{pth}")
+        if mode == "read":
+            pk.fd.check_file_existance(pth)
 
         # Reading
         if mode == "read":
-            self.vo_cv2 = cv2.VideoCapture(pth)
-            self.props = self._get_video_properties(pth)
-            
+            self.vo = cv2.VideoCapture(pth)
+            self.props = self._get_video_properties_reading(pth)
+
         elif mode == "write":
-            self.writer = skvio.FFmpegWriter(
+            self.vo = cv2.VideoWriter(
                 pth,
-                outputdict={
-                    '-vcodec': 'libvpx',
-                    '-b': '300000000'
-                }
+                cv2.VideoWriter_fourcc('m', 'p', '4', 'v'),
+                fps,
+                shape
             )
-            
+            self.props = self._get_video_properties_writing(pth)
+
         else:
             raise Exception(f"Unknown video mode \n\t{mode}")
 
-
-    def _get_video_properties(self, vpath):
+    def _get_video_properties_reading(self, vpath):
         """ Returns a dictionary with following video properties,
         1. video_name
         2. video_ext
@@ -122,9 +121,34 @@ class Vid:
             'num_frames': vnbfrms,
             'width': width,
             'height': height,
-            'frame_dim' : frame_dim
+            'frame_dim': frame_dim
         }
 
+        return vprops
+
+    def _get_video_properties_writing(self, vpath):
+        """ Returns a dictionary with following video properties,
+        1. video_name
+        2. video_ext
+        3. video_path
+        4. frame_rate
+
+        Parameters
+        ----------
+        vpath: str
+            Video file path
+        """
+        # Get video file name and directory location
+        vdir_loc = os.path.dirname(vpath)
+        vname, vext = os.path.splitext(os.path.basename(vpath))
+
+        # Creating properties dictionary
+        vprops = {
+            'full_path': vpath,
+            'name': vname,
+            'extension': vext,
+            'dir_loc': vdir_loc,
+        }
         return vprops
 
     def get_frame(self, frm_num):
@@ -138,10 +162,65 @@ class Vid:
         """
 
         # Read video and seek to frame
-        self.vo_cv2.set(cv2.CAP_PROP_POS_FRAMES, frm_num)
-        _, frame = self.vo_cv2.read()
+        self.vo.set(cv2.CAP_PROP_POS_FRAMES, frm_num)
+        _, frame = self.vo.read()
 
         # Reset the video reader to starting frame
-        self.vo_cv2.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.vo.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
         return frame
+
+    def get_next_frame(self):
+        """
+        Returns a frame from video using its frame number
+
+        Parameters
+        ----------
+        frm_num: int
+            Frame number
+        """
+        _, frame = self.vo.read()
+        return frame
+
+    def write_frame(self, frm):
+        """
+        Write frame
+        """
+
+        # Write frame
+        self.vo.write(frm)
+
+    def close(self, video_with_audio=""):
+        """
+        Parameters
+        ----------
+        video_with_audio: Str
+            Path to video that has audio we need to add to the output video
+            before closing
+        """
+        if isinstance(self.vo, cv2.VideoCapture):
+
+            # Close cv2.VideoCapture
+            self.vo.release()
+
+        else:
+            self.vo.release()
+            tmp_dir = tempfile.gettempdir()
+            tmp_vfile = f"{tmp_dir}/tmp.mp4"
+            tmp_afile = f"{tmp_dir}/tmp.wav"
+
+            # Do not add audio channel
+            if not video_with_audio == "":
+
+                av = video_with_audio
+                extract_aud_cmd = f"ffmpeg -y -i {av} {tmp_afile}"
+                cp_cmd = f"cp {self.props['full_path']} {tmp_vfile}"
+                add_aud_cmd = (
+                    f"ffmpeg -y -i {tmp_vfile} -i {tmp_afile} " +
+                    f" -map 0:v -map 1:a -c:v libx264 "
+                    f"{self.props['full_path']}"
+                )
+
+                os.system(extract_aud_cmd)
+                os.system(cp_cmd)
+                os.system(add_aud_cmd)
