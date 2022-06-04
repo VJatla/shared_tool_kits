@@ -190,6 +190,40 @@ class Vid:
         # Write frame
         self.vo.write(frm)
 
+        
+    def save_spatiotemporal_trim(self, sfrm, efrm, bbox, opth):
+        """
+        Create a spatiotemporl trim. The output video name is
+        <in_vid>_sfrm_efrm.mp4
+
+        Parameters
+        ----------
+        sfrm: int
+            Frame number of starting frame.
+        efrm: int
+            Frame number of ending frame.
+        bbox: int[arr]
+            Bounding box,
+            [<width_location>, <height_location>, <width>, <height>]
+        opth: str
+            Output video path
+        """
+        
+        # Time stamps from frame numbers
+        sts = sfrm / self.props['frame_rate']
+        nframes = efrm - sfrm
+
+        # Creating ffmpeg command string
+        crop_str = f"{bbox[2]}:{bbox[3]}:{bbox[0]}:{bbox[1]}"
+        ffmpeg_cmd = (
+            f'ffmpeg -hide_banner -loglevel warning '
+            f'-y -ss {sts} -i {self.props["full_path"]} -vf "crop={crop_str}" '
+            f'-c:v libx264 -crf 0 -frames:v {nframes} {opth}')
+        os.system(ffmpeg_cmd)
+
+        return opth
+
+        
     def close(self, video_with_audio=""):
         """
         Parameters
