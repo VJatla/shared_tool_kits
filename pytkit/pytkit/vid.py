@@ -31,7 +31,7 @@ class Vid:
         For writing bitrate is set to
         """
 
-        # Check if the file exists
+        # check if the file exists
         if mode == "read":
             pk.fd.check_file_existance(pth)
 

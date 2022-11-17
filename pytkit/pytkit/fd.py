@@ -138,4 +138,43 @@ def load_as_df(pth, sheet_name=None):
         else:
             raise Exception(f"USER_ERROR: Unsupported file : {pth}")
     return df
+
+
+def rename_dir_recursively(pth, oname, nname):
+    """ 
+    Loads a CSV file or XLSX file to a dataframe if it exists.
+
+    Parameters
+    ----------
+    pth : Str
+        Path to root directory
+    oname : Str
+        Old name of the directory
+    nname : Str
+        New name of directory
+    """
+    if not os.path.isdir(pth):
+        raise Exception(f"USER_ERROR: path not found\n\t{pth}")
+
+    # Get all directories
+    all_dirs = []
+    for root, subdirs, files in os.walk(pth):
+        all_dirs += [f"{root}"]
+
+    # Remove all directories without oname
+    dirs = []
+    for pth in all_dirs:
         
+        if oname in pth:
+            before, sep, after = pth.partition(oname)
+            dirs += [f"{before}{sep}"]
+
+    # Unique directory names
+    dirs = list(set(dirs))
+
+    # Rename the directories
+    for d in dirs:
+        output_path = f"{os.path.dirname(d)}/{nname}"
+        cmd = f"mv {d} {output_path}"
+        print(cmd)
+        os.system(cmd)

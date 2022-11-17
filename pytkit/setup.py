@@ -10,7 +10,19 @@ setup(
     license="MIT",
     packages=setuptools.find_packages(""),
     install_requires=[
-        'pretty_errors','pytest',
+        'pretty_errors',
+        'pytest',
+        'scikit-video',
+        'opencv-python',
+        'matplotlib',
+        'pandas',
+        'plotly',
+        'tqdm',
+        'wget',
+        'keyboard',
+        'openpyxl',
+        'torchsummary',
+        'scikit-learn'
     ],
     zip_safe=False,
 )
